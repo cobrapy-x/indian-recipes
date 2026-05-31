@@ -1,0 +1,27 @@
+{
+  "name": "Indian Recipe Suggester",
+  "short_name": "Recipes",
+  "description": "Diabetic-friendly Indian recipe suggester with YouTube links",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fffbeb",
+  "theme_color": "#b45309",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "health", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr"
+}
