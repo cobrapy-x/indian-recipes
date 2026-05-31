@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="theme-color" content="#b45309"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Indian Recipes"/>
+  <meta name="description" content="Diabetic-friendly Indian recipe suggester with YouTube links"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+  <title>Indian Recipe Suggester 🍛</title>
+  <style>
+    :root {
+      --primary: #b45309;
+      --primary-dark: #92400e;
+      --accent: #dc2626;
+      --bg: #fffbeb;
+      --card: #ffffff;
+      --text: #1c1917;
+      --muted: #78716c;
+      --border: #fde68a;
+      --green: #15803d;
+      --blue: #1d4ed8;
+      --red: #b91c1c;
+      --purple: #7c3aed;
+      --teal: #0f766e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* HEADER */
+    .app-header {
+      background: linear-gradient(135deg, #b45309, #dc2626);
+      color: white;
+      padding: 20px 16px 24px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(180,83,9,0.4);
+    }
+    .app-header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.3px; }
+    .app-header p { font-size: 0.82rem; opacity: 0.9; margin-top: 3px; }
+
+    /* SEARCH PANEL */
+    .search-panel {
+      background: white;
+      margin: 12px;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      border: 1px solid var(--border);
+    }
+    .cal-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .cal-row input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    .cal-row input:focus { border-color: var(--primary); }
+    .find-btn {
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .filter-section { margin-bottom: 10px; }
+    .filter-label { font-size: 0.78rem; font-weight: 600; color: var(--primary-dark); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: white;
+      color: var(--muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .chip.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+    /* DIABETIC NOTICE */
+    .diabetic-notice {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      color: #166534;
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+
+    /* RESULTS */
+    #results-section { padding: 0 12px 80px; display: none; }
+    .results-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+    .gi-legend {
+      display: flex;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+    .gi-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
+
+    /* CARDS */
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 600px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      border: 1px solid #f5f5f4;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-top {
+      padding: 14px 14px 0;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .card-emoji { font-size: 2.4rem; flex-shrink: 0; line-height: 1; }
+    .card-title-area { flex: 1; }
+    .card-name { font-size: 1rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+    .card-region { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 8px 14px 0;
+    }
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .b-cal { background: #fee2e2; color: var(--red); }
+    .b-meal { background: #dbeafe; color: var(--blue); }
+    .b-type { background: #dcfce7; color: var(--green); }
+    .b-noveg { background: #fef3c7; color: #92400e; }
+    .b-gi-low { background: #d1fae5; color: #065f46; }
+    .b-gi-med { background: #fef9c3; color: #854d0e; }
+    .b-gi-high { background: #fee2e2; color: var(--red); }
+    .b-diabetic { background: #ede9fe; color: var(--purple); }
+
+    .card-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.45;
+      padding: 8px 14px;
+      flex: 1;
+    }
+    .diabetic-tip {
+      background: #f0fdf4;
+      border-top: 1px solid #bbf7d0;
+      padding: 7px 14px;
+      font-size: 0.77rem;
+      color: #166534;
+    }
+    .diabetic-tip strong { font-weight: 700; }
+
+    .card-footer {
+      padding: 10px 14px 14px;
+      display: flex;
+      gap: 8px;
+    }
+    .yt-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px;
+      background: #ff0000;
+      color: white;
+      text-decoration: none;
+      border-radius: 9px;
+      font-size: 0.83rem;
+      font-weight: 600;
+    }
+    .yt-icon { width: 18px; height: 18px; fill: white; flex-shrink: 0; }
+
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); grid-column: 1/-1; }
+
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      border-top: 1px solid #e7e5e4;
+      display: flex;
+      padding: 8px 0 env(safe-area-inset-bottom, 8px);
+      z-index: 200;
+    }
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn span { font-size: 1.3rem; line-height: 1; }
+
+    /* ABOUT PANEL */
+    #about-panel { display: none; padding: 12px 12px 80px; }
+    .about-card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    }
+    .about-card h3 { font-size: 1rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 8px; }
+    .about-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.55; margin-bottom: 6px; }
+    .about-card ul { padding-left: 16px; }
+    .about-card li { font-size: 0.85rem; color: var(--muted); line-height: 1.7; }
+
+    #search-panel-section { padding-bottom: 0; }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>🍛 Indian Recipe Suggester</h1>
+  <p>Diabetic-friendly · Bengali & North Indian · With YouTube</p>
+</div>
+
+<!-- SEARCH TAB -->
+<div id="search-panel-section">
+  <div class="search-panel">
+    <div class="cal-row">
+      <input type="number" id="calories" placeholder="Calorie target (e.g. 350)" min="50" max="1500"/>
+      <button class="find-btn" onclick="findRecipes()">Find 🔍</button>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-label">Meal Type</div>
+      <div class="chips" id="meal-chips">
+        <button class="chip active" onclick="setFilter('meal','all',this)">All</button>
+        <button class="chip" onclick="setFilter('meal','breakfast',this)">Breakfast</button>
+        <button class="chip" onclick="setFilter('meal','lunch',this)">Lunch</button>
+        <button class="chip" onclick="setFilter('meal','dinner',this)">Dinner</button>
+        <button class="chip" onclick="setFilter('meal','snack',this)">Snack</button>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-label">Food Type</div>
+      <div class="chips" id="type-chips">
+        <button class="chip active" onclick="setFilter('type','all',this)">All</button>
+        <button class="chip" onclick="setFilter('type','veg',this)">🥦 Veg</button>
+        <button class="chip" onclick="setFilter('type','egg',this)">🥚 Egg</button>
+        <button class="chip" onclick="setFilter('type','fish',this)">🐟 Fish</button>
+        <button class="chip" onclick="setFilter('type','chicken',this)">🍗 Chicken</button>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-label">Region</div>
+      <div class="chips" id="region-chips">
+        <button class="chip active" onclick="setFilter('region','all',this)">All</button>
+        <button class="chip" onclick="setFilter('region','bengali',this)">🐟 Bengali</button>
+        <button class="chip" onclick="setFilter('region','north',this)">🫓 North Indian</button>
+        <button class="chip" onclick="setFilter('region','south',this)">🥥 South Indian</button>
+      </div>
+    </div>
+
+    <div class="diabetic-notice">
+      🩺 <span>Recipes tagged <b>Diabetic ✓</b> are low GI and blood sugar friendly. Always consult your doctor for personal dietary needs.</span>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results-section">
+  <div class="results-bar">
+    <span id="results-header"></span>
+    <div class="gi-legend">
+      <span><span class="gi-dot" style="background:#065f46"></span>Low GI</span>
+      <span><span class="gi-dot" style="background:#854d0e"></span>Med GI</span>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- ABOUT PANEL -->
+<div id="about-panel">
+  <div class="about-card">
+    <h3>📱 Install as Mobile App</h3>
+    <p>This is a Progressive Web App (PWA). Install it on your phone's home screen:</p>
+    <ul>
+      <li><strong>Android:</strong> Open in Chrome → tap ⋮ menu → "Add to Home screen"</li>
+      <li><strong>iPhone:</strong> Open in Safari → tap Share 🔗 → "Add to Home Screen"</li>
+    </ul>
+    <p style="margin-top:8px">After installing, it works offline too!</p>
+  </div>
+  <div class="about-card">
+    <h3>🩺 Diabetic Diet Tips</h3>
+    <ul>
+      <li>Choose brown rice or hand-pounded rice over white rice</li>
+      <li>Prefer whole wheat roti over maida</li>
+      <li>Eat smaller portions more frequently</li>
+      <li>Fish (especially hilsa, rohu, catla) is excellent for diabetics</li>
+      <li>Dal provides slow-release protein and fibre</li>
+      <li>Avoid frying — steam, boil or shallow fry</li>
+      <li>Mustard oil (Bengali cooking) is heart-healthy</li>
+    </ul>
+  </div>
+  <div class="about-card">
+    <h3>ℹ️ About</h3>
+    <p>Calorie values are approximate per serving. YouTube links open search results — pick the video that looks best to you!</p>
+    <p>Focus: Bengali cuisine, North Indian staples, diabetic-friendly choices.</p>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-search" onclick="showTab('search')">
+    <span>🔍</span>Search
+  </button>
+  <button class="nav-btn" id="nav-about" onclick="showTab('about')">
+    <span>ℹ️</span>About
+  </button>
+</div>
+
+<script>
+// ─── RECIPE DATABASE ───────────────────────────────────────────────
+const recipes = [
+
+  // ── BENGALI BREAKFAST ──
+  { name:"Muri with Milk", emoji:"🥣", cal:180, meal:"breakfast", type:"veg", region:"bengali",
+    desc:"Puffed rice soaked in warm milk with a little jaggery. A traditional Bengali morning meal.",
+    gi:"low", diabetic:true,
+    tip:"Use jaggery sparingly. Puffed rice has a moderate glycemic load when eaten with milk.",
+    yt:"https://www.youtube.com/results?search_query=muri+milk+bengali+breakfast" },
+
+  { name:"Dal Poori (Luchi & Dal)", emoji:"🫓", cal:380, meal:"breakfast", type:"veg", region:"bengali",
+    desc:"Deep-fried white flour bread with spiced lentil curry. A Bengali weekend indulgence.",
+    gi:"high", diabetic:false,
+    tip:"Limit frequency. Substitute with whole wheat for a more diabetic-friendly version.",
+    yt:"https://www.youtube.com/results?search_query=luchi+dal+bengali+recipe" },
+
+  { name:"Chirer Pulao (Poha)", emoji:"🍚", cal:200, meal:"breakfast", type:"veg", region:"bengali",
+    desc:"Flattened rice stir-fried with potatoes, peanuts, coconut and mild spices. Bengali style.",
+    gi:"medium", diabetic:true,
+    tip:"Portion control is key. Add protein (boiled egg) to reduce glycemic impact.",
+    yt:"https://www.youtube.com/results?search_query=chirer+pulao+bengali+recipe" },
+
+  { name:"Egg Bhurji (Dimer Jhuri)", emoji:"🥚", cal:210, meal:"breakfast", type:"egg", region:"bengali",
+    desc:"Scrambled eggs cooked Bengali-style with onions, green chilli, turmeric and mustard oil.",
+    gi:"low", diabetic:true,
+    tip:"Excellent diabetic breakfast — zero carbs, high protein. Pair with 1 whole wheat roti.",
+    yt:"https://www.youtube.com/results?search_query=dimer+jhuri+bengali+egg+scramble" },
+
+  // ── BENGALI LUNCH/DINNER ──
+  { name:"Rohu Fish Curry (Rui Macher Jhol)", emoji:"🐟", cal:280, meal:"lunch", type:"fish", region:"bengali",
+    desc:"Rohu fish pieces simmered in a light turmeric-cumin-tomato broth. A Bengal staple.",
+    gi:"low", diabetic:true,
+    tip:"Omega-3 rich fish helps insulin sensitivity. Eat with brown rice for best GI control.",
+    yt:"https://www.youtube.com/results?search_query=rui+macher+jhol+bengali+recipe" },
+
+  { name:"Hilsa / Ilish Bhapa", emoji:"🐟", cal:320, meal:"dinner", type:"fish", region:"bengali",
+    desc:"Hilsa fish steamed in mustard-coconut paste. The pride of Bengali cuisine.",
+    gi:"low", diabetic:true,
+    tip:"Ilish is rich in Omega-3 fatty acids. Steaming preserves all nutrients without adding oil.",
+    yt:"https://www.youtube.com/results?search_query=ilish+bhapa+bengali+recipe" },
+
+  { name:"Katla Fish Curry", emoji:"🐟", cal:260, meal:"lunch", type:"fish", region:"bengali",
+    desc:"Catla fish in a mustard-ginger gravy. One of the most popular freshwater fish curries of Bengal.",
+    gi:"low", diabetic:true,
+    tip:"Freshwater fish like Katla is lean protein — ideal for managing blood sugar levels.",
+    yt:"https://www.youtube.com/results?search_query=katla+macher+kalia+bengali" },
+
+  { name:"Shorshe Ilish (Mustard Hilsa)", emoji:"🐟", cal:350, meal:"lunch", type:"fish", region:"bengali",
+    desc:"Hilsa cooked in a sharp mustard seed paste with green chillies — intensely flavourful.",
+    gi:"low", diabetic:true,
+    tip:"The mustard adds healthy fats. Pair with a small portion of red rice for a complete meal.",
+    yt:"https://www.youtube.com/results?search_query=shorshe+ilish+recipe" },
+
+  { name:"Chingri Malaikari (Prawn Coconut Curry)", emoji:"🦐", cal:310, meal:"dinner", type:"fish", region:"bengali",
+    desc:"Prawns cooked in a creamy coconut milk and cardamom gravy — a festive Bengali dish.",
+    gi:"low", diabetic:true,
+    tip:"Prawns are high protein, low carb. Coconut milk adds good fats but watch portion size.",
+    yt:"https://www.youtube.com/results?search_query=chingri+malaikari+bengali+prawn+curry" },
+
+  { name:"Mochar Ghonto (Banana Flower)", emoji:"🌸", cal:200, meal:"lunch", type:"veg", region:"bengali",
+    desc:"Banana blossom dry curry with coconut, mustard seeds and spices. Nutritionally dense.",
+    gi:"low", diabetic:true,
+    tip:"Banana flower is known to help regulate blood sugar. An excellent diabetic-friendly Bengali dish.",
+    yt:"https://www.youtube.com/results?search_query=mochar+ghonto+bengali+recipe" },
+
+  { name:"Shukto (Bitter Veggie Medley)", emoji:"🥦", cal:160, meal:"lunch", type:"veg", region:"bengali",
+    desc:"A Bengali bitter-sweet preparation of mixed vegetables including bitter gourd, drumstick and raw banana.",
+    gi:"low", diabetic:true,
+    tip:"Bitter gourd is one of the best foods for diabetics — helps lower blood sugar naturally.",
+    yt:"https://www.youtube.com/results?search_query=shukto+bengali+recipe" },
+
+  { name:"Aloo Posto (Potato in Poppy Seed)", emoji:"🥔", cal:230, meal:"lunch", type:"veg", region:"bengali",
+    desc:"Potato cubes cooked in ground poppy seed paste — a uniquely Bengali comfort dish.",
+    gi:"medium", diabetic:false,
+    tip:"Poppy seeds are nutritious but potatoes raise blood sugar. Eat in small amounts with dal.",
+    yt:"https://www.youtube.com/results?search_query=aloo+posto+bengali+recipe" },
+
+  { name:"Dhokar Dalna (Lentil Cake Curry)", emoji:"🍲", cal:290, meal:"lunch", type:"veg", region:"bengali",
+    desc:"Diamond-shaped fried lentil cakes cooked in a spiced potato-tomato gravy. A Bengali classic.",
+    gi:"medium", diabetic:true,
+    tip:"High in plant protein. Shallow-frying the cakes instead of deep-frying reduces calories.",
+    yt:"https://www.youtube.com/results?search_query=dhokar+dalna+bengali+recipe" },
+
+  { name:"Cholar Dal with Coconut", emoji:"🥥", cal:250, meal:"lunch", type:"veg", region:"bengali",
+    desc:"Bengal gram lentils cooked with coconut pieces, raisins and ghee. A celebration dal.",
+    gi:"low", diabetic:true,
+    tip:"Chana dal has one of the lowest GI values among all lentils — excellent for diabetics.",
+    yt:"https://www.youtube.com/results?search_query=cholar+dal+bengali+recipe" },
+
+  { name:"Begun Bhaja (Fried Aubergine)", emoji:"🍆", cal:130, meal:"lunch", type:"veg", region:"bengali",
+    desc:"Sliced brinjal seasoned with turmeric and salt, shallow-fried in mustard oil.",
+    gi:"low", diabetic:true,
+    tip:"Brinjal is low carb and high in fibre — a great side dish for diabetic diets.",
+    yt:"https://www.youtube.com/results?search_query=begun+bhaja+bengali+recipe" },
+
+  { name:"Macher Matha Diye Dal (Fish Head Dal)", emoji:"🐟", cal:270, meal:"lunch", type:"fish", region:"bengali",
+    desc:"Rohu fish head slow-cooked with red lentils — a beloved Bengali comfort meal.",
+    gi:"low", diabetic:true,
+    tip:"Fish adds protein to the lentil. Very filling with low glycemic impact.",
+    yt:"https://www.youtube.com/results?search_query=macher+matha+diye+dal+bengali" },
+
+  { name:"Dim Bharta (Egg Mash)", emoji:"🥚", cal:180, meal:"dinner", type:"egg", region:"bengali",
+    desc:"Hard-boiled eggs mashed with raw onion, mustard oil, green chilli and salt. Simple Bengali dinner.",
+    gi:"low", diabetic:true,
+    tip:"Zero carbs. Excellent for blood sugar management. Eat with 1 roti or a small bowl of rice.",
+    yt:"https://www.youtube.com/results?search_query=dim+bharta+bengali+egg+mash" },
+
+  { name:"Kosha Mangsho (Bengali Mutton)", emoji:"🍖", cal:450, meal:"dinner", type:"chicken", region:"bengali",
+    desc:"Slow-cooked spiced mutton in a thick caramelised onion-ginger-yogurt gravy. Weekend special.",
+    gi:"low", diabetic:false,
+    tip:"Mutton is diabetic-ok but high in saturated fat. Eat occasionally, pair with roti over rice.",
+    yt:"https://www.youtube.com/results?search_query=kosha+mangsho+bengali+mutton+recipe" },
+
+  { name:"Bengali Chicken Curry (Murgir Jhol)", emoji:"🍗", cal:310, meal:"dinner", type:"chicken", region:"bengali",
+    desc:"Chicken in a light tomato-potato broth with turmeric and whole spices. Everyday Bengali style.",
+    gi:"low", diabetic:true,
+    tip:"Skinless chicken is lean protein. The light broth keeps calories low. Excellent diabetic choice.",
+    yt:"https://www.youtube.com/results?search_query=bengali+chicken+curry+murgir+jhol" },
+
+  // ── NORTH INDIAN BREAKFAST ──
+  { name:"Whole Wheat Paratha & Curd", emoji:"🫓", cal:310, meal:"breakfast", type:"veg", region:"north",
+    desc:"Whole wheat flatbread shallow-fried with minimal oil, served with fresh low-fat yogurt.",
+    gi:"medium", diabetic:true,
+    tip:"Whole wheat has more fibre than maida. Yogurt adds protein and reduces glycemic response.",
+    yt:"https://www.youtube.com/results?search_query=whole+wheat+paratha+diabetic+recipe" },
+
+  { name:"Missi Roti with Pickle", emoji:"🫓", cal:220, meal:"breakfast", type:"veg", region:"north",
+    desc:"Flatbread made with gram flour (besan) and wheat — spiced with onion and ajwain.",
+    gi:"low", diabetic:true,
+    tip:"Besan is low GI and high protein. Missi roti is one of the best breakfast choices for diabetics.",
+    yt:"https://www.youtube.com/results?search_query=missi+roti+recipe" },
+
+  { name:"Besan Chilla (Gram Flour Pancake)", emoji:"🥞", cal:200, meal:"breakfast", type:"veg", region:"north",
+    desc:"Crispy gram flour pancake stuffed with paneer and veggies. High protein, low carb.",
+    gi:"low", diabetic:true,
+    tip:"One of the best diabetic breakfasts — slow-digesting protein keeps blood sugar stable.",
+    yt:"https://www.youtube.com/results?search_query=besan+chilla+recipe+diabetic" },
+
+  { name:"Poha with Flaxseed", emoji:"🍚", cal:195, meal:"breakfast", type:"veg", region:"north",
+    desc:"Flattened rice with mustard seeds, curry leaves, onion and a sprinkle of flaxseed.",
+    gi:"medium", diabetic:true,
+    tip:"Adding flaxseed increases Omega-3 and fibre content, helping control blood sugar spikes.",
+    yt:"https://www.youtube.com/results?search_query=poha+flaxseed+diabetic+recipe" },
+
+  { name:"Boiled Egg & Roti", emoji:"🥚", cal:240, meal:"breakfast", type:"egg", region:"north",
+    desc:"Two boiled eggs with 1–2 whole wheat rotis and fresh vegetable chutney.",
+    gi:"low", diabetic:true,
+    tip:"Classic diabetic-friendly breakfast — complete protein plus complex carbs. Very balanced.",
+    yt:"https://www.youtube.com/results?search_query=boiled+egg+roti+diabetic+breakfast" },
+
+  // ── NORTH INDIAN LUNCH ──
+  { name:"Dal Makhani (Light)", emoji:"🫘", cal:300, meal:"lunch", type:"veg", region:"north",
+    desc:"Slow-cooked black lentils in a mild tomato gravy with minimal butter. A North Indian legend.",
+    gi:"low", diabetic:true,
+    tip:"Black urad dal is rich in fibre. Reduce butter/cream to keep it diabetic-friendly.",
+    yt:"https://www.youtube.com/results?search_query=dal+makhani+recipe+healthy" },
+
+  { name:"Rajma with Brown Rice", emoji:"🫘", cal:420, meal:"lunch", type:"veg", region:"north",
+    desc:"Red kidney beans in tangy tomato-onion gravy served with brown rice instead of white.",
+    gi:"medium", diabetic:true,
+    tip:"Rajma is high in protein and fibre. Brown rice lowers the overall GI of the meal.",
+    yt:"https://www.youtube.com/results?search_query=rajma+brown+rice+recipe" },
+
+  { name:"Chicken Tikka (Tandoori)", emoji:"🍗", cal:280, meal:"lunch", type:"chicken", region:"north",
+    desc:"Marinated chicken grilled in a tandoor or oven — smoky, high protein, minimal oil.",
+    gi:"low", diabetic:true,
+    tip:"No carbs, very high protein. One of the best diabetic-friendly non-veg lunch options.",
+    yt:"https://www.youtube.com/results?search_query=chicken+tikka+recipe+healthy" },
+
+  { name:"Sarson da Saag with Makki Roti", emoji:"🌿", cal:360, meal:"lunch", type:"veg", region:"north",
+    desc:"Punjabi mustard greens cooked low and slow, served with corn flatbread.",
+    gi:"low", diabetic:true,
+    tip:"Mustard greens are packed with fibre and vitamins. Makki atta has a lower GI than wheat.",
+    yt:"https://www.youtube.com/results?search_query=sarson+da+saag+makki+roti+recipe" },
+
+  { name:"Palak Chicken", emoji:"🍗", cal:340, meal:"dinner", type:"chicken", region:"north",
+    desc:"Tender chicken pieces in a creamy iron-rich spinach gravy — protein and micronutrient rich.",
+    gi:"low", diabetic:true,
+    tip:"Spinach is excellent for diabetics. Combined with lean chicken, this is a near-perfect dinner.",
+    yt:"https://www.youtube.com/results?search_query=palak+chicken+recipe" },
+
+  { name:"Tandoori Chicken with Salad", emoji:"🍗", cal:300, meal:"dinner", type:"chicken", region:"north",
+    desc:"Whole chicken marinated in yogurt and spices, roasted in oven or on grill.",
+    gi:"low", diabetic:true,
+    tip:"Zero carbs. Rich in protein. The yogurt marinade adds probiotics. Excellent diabetic dinner.",
+    yt:"https://www.youtube.com/results?search_query=tandoori+chicken+recipe+at+home" },
+
+  { name:"Egg Curry with Roti", emoji:"🥚", cal:310, meal:"dinner", type:"egg", region:"north",
+    desc:"Hard-boiled eggs in a spiced tomato-onion gravy, paired with 2 whole wheat rotis.",
+    gi:"low", diabetic:true,
+    tip:"Eggs have zero glycemic index. A very satisfying, blood-sugar-friendly dinner.",
+    yt:"https://www.youtube.com/results?search_query=egg+curry+recipe+north+indian" },
+
+  { name:"Palak Paneer with Roti", emoji:"🥬", cal:360, meal:"dinner", type:"veg", region:"north",
+    desc:"Cottage cheese in creamy spinach gravy. Served with 2 whole wheat rotis.",
+    gi:"low", diabetic:true,
+    tip:"Paneer provides slow-digesting protein. Spinach is a superfood for blood sugar management.",
+    yt:"https://www.youtube.com/results?search_query=palak+paneer+recipe" },
+
+  { name:"Aloo Gobi Sabzi with Roti", emoji:"🥦", cal:280, meal:"lunch", type:"veg", region:"north",
+    desc:"Cauliflower and potato dry curry with cumin, turmeric and coriander.",
+    gi:"medium", diabetic:true,
+    tip:"Cauliflower is low carb. Reduce potato and increase cauliflower for a better GI profile.",
+    yt:"https://www.youtube.com/results?search_query=aloo+gobi+recipe" },
+
+  { name:"Kadhi Pakora with Brown Rice", emoji:"🍲", cal:370, meal:"lunch", type:"veg", region:"north",
+    desc:"Yogurt-besan curry with fritters. Tangy, comforting North Indian lunch.",
+    gi:"medium", diabetic:false,
+    tip:"Moderate GI. Choose steamed kadhi without pakoras to make it more diabetic-friendly.",
+    yt:"https://www.youtube.com/results?search_query=kadhi+pakora+recipe" },
+
+  { name:"Chicken Biryani (Brown Rice)", emoji:"🍗", cal:520, meal:"lunch", type:"chicken", region:"north",
+    desc:"Fragrant biryani made with brown basmati rice and marinated chicken. Festive yet healthier.",
+    gi:"medium", diabetic:false,
+    tip:"Brown rice biryani has a lower GI. Limit to once a week. Pair with raita for better glycemic response.",
+    yt:"https://www.youtube.com/results?search_query=brown+rice+chicken+biryani+recipe" },
+
+  { name:"Lauki (Bottle Gourd) Sabzi", emoji:"🥒", cal:120, meal:"dinner", type:"veg", region:"north",
+    desc:"Tender bottle gourd cooked with mild spices. Extremely light and easy on digestion.",
+    gi:"low", diabetic:true,
+    tip:"Lauki is one of the best vegetables for diabetics — very low in calories and carbohydrates.",
+    yt:"https://www.youtube.com/results?search_query=lauki+sabzi+recipe" },
+
+  { name:"Tinda Masala (Apple Gourd)", emoji:"🫑", cal:110, meal:"dinner", type:"veg", region:"north",
+    desc:"Small round gourds cooked in a dry spiced tomato masala. A North Indian seasonal favourite.",
+    gi:"low", diabetic:true,
+    tip:"Very low calorie and glycemic index. Excellent side dish for a diabetic dinner plate.",
+    yt:"https://www.youtube.com/results?search_query=tinda+masala+recipe" },
+
+  // ── STAPLE RICE & ROTI ──
+  { name:"Plain Dal Khichdi", emoji:"🍚", cal:260, meal:"dinner", type:"veg", region:"north",
+    desc:"One-pot rice and moong dal with turmeric and ghee. The ultimate comfort food.",
+    gi:"medium", diabetic:true,
+    tip:"Made with moong dal and minimal rice this is gentle on the gut and blood sugar.",
+    yt:"https://www.youtube.com/results?search_query=dal+khichdi+recipe" },
+
+  { name:"Brown Rice Dal", emoji:"🍚", cal:300, meal:"lunch", type:"veg", region:"north",
+    desc:"Brown rice paired with dal tadka — a balanced, high-fibre complete meal.",
+    gi:"medium", diabetic:true,
+    tip:"Brown rice has significantly lower GI than white. Combined with protein-rich dal, very balanced.",
+    yt:"https://www.youtube.com/results?search_query=brown+rice+dal+recipe+diabetic" },
+
+  { name:"Roti with Mixed Veg Sabzi", emoji:"🫓", cal:240, meal:"dinner", type:"veg", region:"north",
+    desc:"Two whole wheat rotis with a seasonal mixed vegetable curry.",
+    gi:"low", diabetic:true,
+    tip:"Whole wheat roti + vegetables is the gold standard dinner for Type 2 diabetics.",
+    yt:"https://www.youtube.com/results?search_query=mix+veg+sabzi+with+roti+recipe" },
+
+  { name:"Roti with Egg Bhurji", emoji:"🥚", cal:290, meal:"dinner", type:"egg", region:"north",
+    desc:"Spiced scrambled eggs with 2 whole wheat rotis — quick, protein-packed dinner.",
+    gi:"low", diabetic:true,
+    tip:"Eggs are ideal for diabetics. This simple combination keeps blood sugar very stable.",
+    yt:"https://www.youtube.com/results?search_query=egg+bhurji+roti+recipe" },
+
+  // ── SOUTH INDIAN (bonus) ──
+  { name:"Idli with Sambar & Chutney", emoji:"🫓", cal:150, meal:"breakfast", type:"veg", region:"south",
+    desc:"Steamed fermented rice cakes with protein-rich lentil sambar. Light and probiotic-rich.",
+    gi:"medium", diabetic:true,
+    tip:"Fermentation reduces GI. Two idlis with sambar is a perfectly balanced diabetic breakfast.",
+    yt:"https://www.youtube.com/results?search_query=idli+sambar+recipe" },
+
+  { name:"Pesarattu (Moong Crepe)", emoji:"🥞", cal:190, meal:"breakfast", type:"veg", region:"south",
+    desc:"Green moong dal crepe with ginger and green chilli. High protein, gluten-free.",
+    gi:"low", diabetic:true,
+    tip:"Moong dal has one of the lowest GI values. An ideal diabetic breakfast.",
+    yt:"https://www.youtube.com/results?search_query=pesarattu+recipe" },
+
+  { name:"Rasam Rice", emoji:"🍚", cal:220, meal:"lunch", type:"veg", region:"south",
+    desc:"Tangy tomato-tamarind pepper broth over rice. Light and therapeutic.",
+    gi:"medium", diabetic:true,
+    tip:"Pepper and tamarind aid digestion. Use small portion of rice for diabetics.",
+    yt:"https://www.youtube.com/results?search_query=rasam+rice+recipe" },
+
+  // ── SNACKS ──
+  { name:"Makhana (Fox Nuts) Roasted", emoji:"🍿", cal:100, meal:"snack", type:"veg", region:"north",
+    desc:"Roasted lotus seeds with rock salt and pepper. A crunchy, low-calorie diabetic snack.",
+    gi:"low", diabetic:true,
+    tip:"Makhana is an ideal diabetic snack — low GI, low fat, and very filling.",
+    yt:"https://www.youtube.com/results?search_query=roasted+makhana+recipe" },
+
+  { name:"Cucumber Raita", emoji:"🥒", cal:80, meal:"snack", type:"veg", region:"north",
+    desc:"Chilled yogurt with grated cucumber, cumin and mint. Cooling and probiotic.",
+    gi:"low", diabetic:true,
+    tip:"Eat as a side with any meal to slow digestion and reduce glycemic response.",
+    yt:"https://www.youtube.com/results?search_query=cucumber+raita+recipe" },
+
+  { name:"Moong Dal Chilla", emoji:"🥞", cal:220, meal:"snack", type:"veg", region:"north",
+    desc:"Green moong lentil pancake with ginger, chilli and fresh coriander. Protein-rich snack.",
+    gi:"low", diabetic:true,
+    tip:"One of the healthiest Indian snacks for diabetics. Has sustained energy release.",
+    yt:"https://www.youtube.com/results?search_query=moong+dal+chilla+recipe" },
+
+  { name:"Boiled Chana Chaat", emoji:"🫘", cal:160, meal:"snack", type:"veg", region:"north",
+    desc:"Boiled chickpeas tossed with onion, tomato, lemon and chaat masala.",
+    gi:"low", diabetic:true,
+    tip:"Chickpeas are very low GI and high in protein. This snack keeps you full for hours.",
+    yt:"https://www.youtube.com/results?search_query=boiled+chana+chaat+recipe" },
+
+  { name:"Sprout Salad", emoji:"🥗", cal:120, meal:"snack", type:"veg", region:"north",
+    desc:"Mixed bean sprouts with tomato, cucumber, lemon juice and black salt.",
+    gi:"low", diabetic:true,
+    tip:"Sprouting increases protein and reduces carbs. The best snack for managing blood sugar.",
+    yt:"https://www.youtube.com/results?search_query=sprout+salad+recipe+indian" },
+
+  { name:"Fish Fry (Maacher Bhaja)", emoji:"🐟", cal:200, meal:"snack", type:"fish", region:"bengali",
+    desc:"Rohu or Katla fish shallow-fried with turmeric and chilli. Bengali tea-time snack.",
+    gi:"low", diabetic:true,
+    tip:"Fish fry with minimal oil is a high-protein, low-carb snack excellent for diabetics.",
+    yt:"https://www.youtube.com/results?search_query=maacher+bhaja+bengali+fish+fry" },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────
+let filters = { meal: 'all', type: 'all', region: 'all' };
+
+function setFilter(key, val, btn) {
+  filters[key] = val;
+  const group = document.querySelectorAll(`#${key}-chips .chip`);
+  group.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function findRecipes() {
+  const input = parseInt(document.getElementById('calories').value);
+  if (!input || input < 50) { alert('Please enter a calorie value.'); return; }
+
+  const tol = Math.max(100, input * 0.40);
+  const min = input - tol, max = input + tol;
+
+  const filtered = recipes.filter(r => {
+    const calOk = r.cal >= min && r.cal <= max;
+    const mealOk = filters.meal === 'all' || r.meal === filters.meal;
+    const typeOk = filters.type === 'all' || r.type === filters.type;
+    const regionOk = filters.region === 'all' || r.region === filters.region;
+    return calOk && mealOk && typeOk && regionOk;
+  }).sort((a, b) => Math.abs(a.cal - input) - Math.abs(b.cal - input));
+
+  const section = document.getElementById('results-section');
+  const grid = document.getElementById('grid');
+  const hdr = document.getElementById('results-header');
+  section.style.display = 'block';
+
+  if (filtered.length === 0) {
+    hdr.textContent = 'No recipes found';
+    grid.innerHTML = `<div class="empty">😔 Try adjusting your calorie range or filters.</div>`;
+    section.scrollIntoView({ behavior:'smooth' });
+    return;
+  }
+
+  hdr.textContent = `${filtered.length} recipe${filtered.length > 1 ? 's' : ''} near ${input} kcal`;
+  grid.innerHTML = filtered.map(r => {
+    const giClass = r.gi === 'low' ? 'b-gi-low' : r.gi === 'medium' ? 'b-gi-med' : 'b-gi-high';
+    const giLabel = r.gi === 'low' ? 'Low GI' : r.gi === 'medium' ? 'Med GI' : 'High GI';
+    const typeIcons = { veg:'🥦 Veg', egg:'🥚 Egg', fish:'🐟 Fish', chicken:'🍗 Chicken' };
+    const regionLabel = { bengali:'🐟 Bengali', north:'🫓 North Indian', south:'🥥 South Indian' };
+    return `
+    <div class="card">
+      <div class="card-top">
+        <div class="card-emoji">${r.emoji}</div>
+        <div class="card-title-area">
+          <div class="card-name">${r.name}</div>
+          <div class="card-region">${regionLabel[r.region]} · ${r.meal.charAt(0).toUpperCase()+r.meal.slice(1)}</div>
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge b-cal">~${r.cal} kcal</span>
+        <span class="badge ${giClass}">${giLabel}</span>
+        <span class="badge ${r.type==='veg'?'b-type':'b-noveg'}">${typeIcons[r.type]}</span>
+        ${r.diabetic ? '<span class="badge b-diabetic">Diabetic ✓</span>' : ''}
+      </div>
+      <p class="card-desc">${r.desc}</p>
+      ${r.tip ? `<div class="diabetic-tip">🩺 <strong>Diabetic tip:</strong> ${r.tip}</div>` : ''}
+      <div class="card-footer">
+        <a class="yt-btn" href="${r.yt}" target="_blank" rel="noopener">
+          <svg class="yt-icon" viewBox="0 0 24 24"><path d="M23.5 6.2s-.3-2-1.2-2.8c-1.1-1.2-2.4-1.2-3-1.3C16.8 2 12 2 12 2s-4.8 0-7.3.1c-.6.1-1.9.1-3 1.3C.8 4.2.5 6.2.5 6.2S.2 8.5.2 10.8v2.1c0 2.3.3 4.6.3 4.6s.3 2 1.2 2.8c1.1 1.2 2.6 1.1 3.3 1.2C7.1 21.7 12 21.8 12 21.8s4.8 0 7.3-.2c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.8 1.2-2.8s.3-2.3.3-4.6v-2.1C23.8 8.5 23.5 6.2 23.5 6.2zM9.7 15.5V8.4l8.1 3.6-8.1 3.5z"/></svg>
+          Watch on YouTube
+        </a>
+      </div>
+    </div>`;
+  }).join('');
+
+  section.scrollIntoView({ behavior:'smooth' });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('calories').addEventListener('keydown', e => {
+    if (e.key === 'Enter') findRecipes();
+  });
+});
+
+function showTab(tab) {
+  document.getElementById('search-panel-section').style.display = tab === 'search' ? '' : 'none';
+  document.getElementById('results-section').style.display = tab === 'search' ? (document.getElementById('grid').children.length ? 'block' : 'none') : 'none';
+  document.getElementById('about-panel').style.display = tab === 'about' ? 'block' : 'none';
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-'+tab).classList.add('active');
+}
+</script>
+
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
